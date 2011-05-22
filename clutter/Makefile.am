@@ -428,7 +428,6 @@ EXTRA_DIST += \
 
 # EGL backend rules
 egl_source_h = \
-	$(srcdir)/egl/clutter-egl-headers.h	\
 	$(srcdir)/egl/clutter-egl.h		\
 	$(NULL)
 

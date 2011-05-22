@@ -6,6 +6,7 @@
 #endif
 
 #include <glib-object.h>
+#include <cogl/cogl.h>
 #include <clutter/clutter-stage.h>
 
 #ifdef COGL_HAS_X11_SUPPORT
@@ -15,7 +16,6 @@
 #include "../x11/clutter-stage-x11.h"
 #endif
 
-#include "clutter-egl-headers.h"
 #include "clutter-backend-egl.h"
 
 G_BEGIN_DECLS

@@ -45,7 +45,7 @@
 #include <X11/Xutil.h>
 #endif
 
-#include "clutter-egl-headers.h"
+#include <cogl/cogl.h>
 
 G_BEGIN_DECLS
 

@@ -30,14 +30,14 @@
 #include <clutter/clutter-backend.h>
 #include <clutter/clutter-device-manager.h>
 
+#include <cogl/cogl.h>
+
 #ifdef COGL_HAS_XLIB_SUPPORT
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #endif
 
 #include "clutter-backend-private.h"
-
-#include "clutter-egl-headers.h"
 
 #ifdef COGL_HAS_X11_SUPPORT
 #include "../x11/clutter-backend-x11.h"
