@@ -180,7 +180,7 @@ experimental_backend=no
 experimental_image=no
 
 AC_ARG_WITH([flavour],
-            [AC_HELP_STRING([--with-flavour=@<:@glx/opengl-egl-xlib/wayland/eglx/eglnative/osx/win32/cex100@:>@],
+            [AC_HELP_STRING([--with-flavour=@<:@glx/opengl-egl-xlib/wayland/eglx/eglnative/osx/win32/cex100/pris@:>@],
                             [Select the Clutter window system backend])],
             [CLUTTER_FLAVOUR=$with_flavour])
 
@@ -352,6 +352,27 @@ AS_CASE([$CLUTTER_FLAVOUR],
           FLAVOUR_LIBS="$FLAVOUR_LIBS -lgdl $EVDEV_LIBS"
         ],
 
+        [pris],
+        [
+          # Do androids dream of electric sheep?
+
+          # The android is a specialization of the EGL backend
+          CLUTTER_STAGE_TYPE="CLUTTER_TYPE_STAGE_EGL"
+          CLUTTER_EGL_BACKEND="android"
+
+          SUPPORT_EGL=1
+          SUPPORT_EGL_PLATFORM_ANDROID=1
+
+          CLUTTER_WINSYS=android
+          CLUTTER_WINSYS_BASE=egl
+          CLUTTER_SONAME_INFIX=android
+
+          PKG_CHECK_MODULES(GLIB_ANDROID, [glib-android-1.0])
+
+          FLAVOUR_CFLAGS="$FLAVOUR_CFLAGS $GLIB_ANDROID_CFLAGS"
+          FLAVOUR_LIBS="$FLAVOUR_LIBS $GLIB_ANDROID_LIBS"
+         ],
+
         [osx],
         [
           experimental_backend="yes"
@@ -423,6 +444,7 @@ AM_CONDITIONAL(SUPPORT_EGL, [test "x$SUPPORT_EGL" = "x1"])
 AM_CONDITIONAL(SUPPORT_OSX, [test "x$CLUTTER_WINSYS" = "xosx"])
 AM_CONDITIONAL(SUPPORT_WIN32, [test "x$CLUTTER_WINSYS" = "xwin32"])
 AM_CONDITIONAL(SUPPORT_CEX100, [test "x$SUPPORT_EGL_PLATFORM_GDL" = "x1"])
+AM_CONDITIONAL(SUPPORT_ANDROID, [test "x$SUPPORT_EGL_PLATFORM_ANDROID" = "x1"])
 AM_CONDITIONAL(SUPPORT_WAYLAND, [test "x$CLUTTER_WINSYS" = "xwayland"])
 AM_CONDITIONAL(SUPPORT_STUB, [test "x$CLUTTER_WINSYS" = "xwin32" -o \
 			      "x$CLUTTER_WINSYS" = "xosx" -o \
@@ -465,6 +487,9 @@ AS_IF([test "x$CLUTTER_WINSYS" = "xwin32"],
 AS_IF([test "x$SUPPORT_EGL_PLATFORM_GDL" = "x1"],
       [CLUTTER_CONFIG_DEFINES="$CLUTTER_CONFIG_DEFINES
 #define CLUTTER_WINDOWING_CEX100 1"])
+AS_IF([test "x$SUPPORT_EGL_PLATFORM_ANDROID" = "x1"],
+      [CLUTTER_CONFIG_DEFINES="$CLUTTER_CONFIG_DEFINES
+#define CLUTTER_WINDOWING_ANDROID 1"])
 
 AC_SUBST([CLUTTER_CONFIG_DEFINES])
 
