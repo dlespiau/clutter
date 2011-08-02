@@ -484,6 +484,30 @@ clutteregl_includedir = $(clutter_includedir)/egl
 clutteregl_include_HEADERS = $(egl_source_h)
 endif # SUPPORT_EGL
 
+android_source_c = \
+	$(srcdir)/android/clutter-android-application.c	\
+	$(NULL)
+
+android_source_h = \
+	$(srcdir)/android/clutter-android-application.h	\
+	$(srcdir)/android/clutter-android.h		\
+	$(NULL)
+
+android_source_h_priv = \
+	$(srcdir)/android/android_native_app_glue.h	\
+	$(NULL)
+
+if SUPPORT_ANDROID
+
+backend_source_h += $(android_source_h)
+backend_source_c += $(android_source_c)
+backend_source_h_priv += $(android_source_h_priv)
+backend_source_c_priv += $(android_source_c_priv)
+
+android_includedir = $(clutter_includedir)/android
+android_include_HEADERS = $(android_source_h)
+endif # SUPPORT_ANDROID
+
 # OSX backend rules
 osx_source_c = \
 	$(srcdir)/osx/clutter-backend-osx.c	\

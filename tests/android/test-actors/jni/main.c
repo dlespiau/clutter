@@ -24,14 +24,12 @@
 
 #include <math.h>
 
-#include <android_native_app_glue.h>
 #include <android/asset_manager.h>
-#include <android/input.h>
 
 #include <glib.h>
-#include <glib-android/glib-android.h>
 #include <cogl/cogl.h>
 #include <clutter/clutter.h>
+#include <clutter/android/clutter-android.h>
 
 #define NHANDS  6
 
@@ -46,10 +44,7 @@ static gint n_hands = NHANDS;
 
 typedef struct
 {
-  struct android_app* app;
-
-  gint have_window : 1;
-  GMainLoop *wait_for_window;
+  ClutterAndroidApplication *application;
 
   ClutterActor **hand;
   ClutterActor  *bgtex;
@@ -74,12 +69,13 @@ clutter_texture_new_from_android_asset (TestData   *data,
   const unsigned char *buffer, *pixels;
   int width, height, stb_pixel_format;
   GError *error = NULL;
+  AAssetManager *asset_manager;
   AAsset *asset;
   ClutterActor *actor;
 
-  asset = AAssetManager_open (data->app->activity->assetManager,
-                             path,
-                             AASSET_MODE_BUFFER);
+  asset_manager =
+    clutter_android_application_get_asset_manager (data->application);
+  asset = AAssetManager_open (asset_manager, path, AASSET_MODE_BUFFER);
 
   if (asset == NULL)
     g_critical ("Could not open %s", path);
@@ -192,15 +188,16 @@ on_button_press_event (ClutterActor *actor,
 
   return TRUE;
 }
+
 static gboolean
-test_init (TestData* data)
+test_init (ClutterAndroidApplication *application,
+           TestData*                  data)
 {
   ClutterInitError init_error;
   ClutterAlpha *alpha;
   gint          i;
   ClutterActor *real_hand;
 
-  cogl_android_set_native_window_EXP (data->app->window);
   init_error = clutter_init (NULL, NULL);
   if (init_error <= 0)
     {
@@ -303,6 +300,8 @@ test_init (TestData* data)
   /* and start it */
   clutter_timeline_start (data->timeline);
 
+  clutter_actor_show (data->stage);
+
   return TRUE;
 }
 
@@ -311,170 +310,17 @@ test_fini (TestData *data)
 {
 }
 
-/**
- * Process the next main command.
- */
-static void
-test_handle_cmd (struct android_app* app,
-                 int32_t             cmd)
-{
-  TestData *data = (TestData *) app->userData;
-
-  switch (cmd)
-    {
-    case APP_CMD_INIT_WINDOW:
-      /* The window is being shown, get it ready */
-      g_message ("command: INIT_WINDOW");
-      if (data->app->window != NULL)
-        {
-          gboolean initialized;
-
-          initialized = test_init (data);
-
-          if (initialized)
-            data->have_window = TRUE;
-
-          if (data->wait_for_window)
-            {
-              g_message ("Waking up the waiting main loop");
-              g_main_loop_quit (data->wait_for_window);
-            }
-        }
-      break;
-
-    case APP_CMD_TERM_WINDOW:
-      /* The window is being hidden or closed, clean it up */
-      g_message ("command: TERM_WINDOW");
-      if (data->wait_for_window)
-        g_main_loop_quit (data->wait_for_window);
-      else
-        clutter_main_quit ();
-      test_fini (data);
-      break;
-
-    case APP_CMD_GAINED_FOCUS:
-      g_message ("command: GAINED_FOCUS");
-      break;
-
-    case APP_CMD_LOST_FOCUS:
-      /* When our app loses focus, we stop monitoring the accelerometer.
-       * This is to avoid consuming battery while not being used. */
-      g_message ("command: LOST_FOCUS");
-      break;
-    }
-}
-
-/**
- * Process the next input event
- */
-static int32_t
-test_handle_input (struct android_app* app,
-                   AInputEvent*        a_event)
-{
-  ClutterEvent *event;
-  ClutterButtonEvent *button_event;
-  ClutterDeviceManager *manager;
-  ClutterInputDevice *pointer_device;
-
-  manager = clutter_device_manager_get_default ();
-  pointer_device =
-    clutter_device_manager_get_core_device (manager,
-                                            CLUTTER_POINTER_DEVICE);
-
-  if (AInputEvent_getType (a_event) == AINPUT_EVENT_TYPE_MOTION)
-    {
-      int32_t action;
-
-      g_message ("motion event: (%.02lf,%0.2lf)",
-                 AMotionEvent_getX (a_event, 0),
-                 AMotionEvent_getY (a_event, 0));
-
-      action = AMotionEvent_getAction (a_event);
-
-      if ((action & AMOTION_EVENT_ACTION_MASK) == AMOTION_EVENT_ACTION_DOWN)
-        {
-          g_message ("Press");
-          event = clutter_event_new (CLUTTER_BUTTON_PRESS);
-        }
-      else if ((action & AMOTION_EVENT_ACTION_MASK) == AMOTION_EVENT_ACTION_UP)
-        {
-          g_message ("Release");
-          event = clutter_event_new (CLUTTER_BUTTON_RELEASE);
-        }
-      else
-        {
-          g_warning ("meh? %x", action);
-          return 0;
-        }
-
-      button_event = (ClutterButtonEvent *) event;
-      button_event->x = AMotionEvent_getX (a_event, 0);
-      button_event->y = AMotionEvent_getY (a_event, 0);
-      button_event->button = 1;
-      button_event->click_count = 1;
-
-      clutter_event_set_device (event, pointer_device);
-
-      clutter_event_put (event);
-
-      return 1;
-    }
-
-  return 0;
-}
-
-static gboolean
-check_ready (gpointer user_data)
-{
-  TestData *data = user_data;
-
-  if (data->have_window && data->wait_for_window)
-    {
-      g_main_loop_quit (data->wait_for_window);
-      return FALSE;
-    }
-
-  if (data->have_window)
-    return FALSE;
-
-  return TRUE;
-}
-
-/**
- * This is the main entry point of a native application that is using
- * android_native_app_glue.  It runs in its own thread, with its own
- * event loop for receiving input events and doing other things.
- */
 void
-android_main (struct android_app* application)
+clutter_android_main (ClutterAndroidApplication *application)
 {
   TestData data;
 
-  /* Make sure glue isn't stripped */
-  app_dummy ();
-
   g_setenv ("CLUTTER_DEBUG", "event", TRUE);
-  g_android_init ();
 
   memset (&data, 0, sizeof (TestData));
-  application->userData = &data;
-  application->onAppCmd = test_handle_cmd;
-  application->onInputEvent = test_handle_input;
-  data.app = application;
+  data.application = application;
 
-  /* XXX: eeew. We wait to have a window to initialize Clutter and thus to
-   * enter the clutter main loop */
-  if (!data.have_window)
-    {
-      g_message ("Waiting for the window");
-      data.wait_for_window = g_main_loop_new (NULL, FALSE);
-      g_timeout_add (1000, check_ready, &data);
-      g_main_loop_run (data.wait_for_window);
-      g_main_loop_unref (data.wait_for_window);
-      data.wait_for_window = NULL;
-    }
+  g_signal_connect_after (application, "ready", G_CALLBACK (test_init), &data);
 
-  clutter_actor_show (data.stage);
-  g_message ("entering main loop");
-  clutter_main ();
+  clutter_android_application_run (application);
 }
