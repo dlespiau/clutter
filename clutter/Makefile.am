@@ -488,13 +488,18 @@ android_source_c = \
 	$(srcdir)/android/clutter-android-application.c	\
 	$(NULL)
 
+android_source_c_priv = \
+	$(srcdir)/android/clutter-device-manager-android.c \
+	$(NULL)
+
 android_source_h = \
 	$(srcdir)/android/clutter-android-application.h	\
 	$(srcdir)/android/clutter-android.h		\
 	$(NULL)
 
 android_source_h_priv = \
-	$(srcdir)/android/android_native_app_glue.h	\
+	$(srcdir)/android/android_native_app_glue.h		\
+	$(srcdir)/android/clutter-device-manager-android.h	\
 	$(NULL)
 
 if SUPPORT_ANDROID

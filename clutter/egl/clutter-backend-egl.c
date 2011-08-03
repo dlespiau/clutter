@@ -44,13 +44,19 @@
 #include "clutter-device-manager-evdev.h"
 #endif
 
+#include "clutter-config.h"
 #include "clutter-debug.h"
 #include "clutter-private.h"
 #include "clutter-main.h"
 #include "clutter-stage-private.h"
+
 /* FIXME: We should have CLUTTER_ define for this... */
 #ifdef COGL_HAS_EGL_PLATFORM_GDL_SUPPORT
 #include "clutter-cex100.h"
+#endif
+
+#ifdef CLUTTER_WINDOWING_ANDROID
+#include "android/clutter-device-manager-android.h"
 #endif
 
 static ClutterBackendEGL *backend_singleton = NULL;
@@ -140,6 +146,11 @@ clutter_backend_egl_get_device_manager (ClutterBackend *backend)
 	g_object_new (CLUTTER_TYPE_DEVICE_MANAGER_EVDEV,
 		      "backend", backend_egl,
 		      NULL);
+#elif defined (CLUTTER_WINDOWING_ANDROID)
+      backend_egl->device_manager =
+	g_object_new (CLUTTER_TYPE_DEVICE_MANAGER_ANDROID,
+		      "backend", backend_egl,
+		      NULL);
 #endif
     }
 
@@ -156,6 +167,10 @@ clutter_backend_egl_init_events (ClutterBackend *backend)
 #endif
 #ifdef HAVE_EVDEV
   _clutter_events_evdev_init (CLUTTER_BACKEND (backend));
+#endif
+#ifdef CLUTTER_WINDOWING_ANDROID
+  g_message ("init android events");
+  _clutter_events_android_init (CLUTTER_BACKEND (backend));
 #endif
 #ifdef COGL_HAS_X11_SUPPORT
   /* Chain up to the X11 backend */
@@ -201,6 +216,10 @@ clutter_backend_egl_dispose (GObject *gobject)
       g_timer_destroy (backend_egl->event_timer);
       backend_egl->event_timer = NULL;
     }
+#endif
+
+#ifdef CLUTTER_WINDOWING_ANDROID
+  _clutter_events_android_uninit (backend);
 #endif
 }
 

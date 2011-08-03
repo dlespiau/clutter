@@ -178,11 +178,7 @@ clutter_android_handle_input (struct android_app *app,
   ClutterButtonEvent *button_event;
   ClutterDeviceManager *manager;
   ClutterInputDevice *pointer_device;
-
-  manager = clutter_device_manager_get_default ();
-  pointer_device =
-    clutter_device_manager_get_core_device (manager,
-                                            CLUTTER_POINTER_DEVICE);
+  ClutterActor *stage;
 
   if (AInputEvent_getType (a_event) == AINPUT_EVENT_TYPE_MOTION)
     {
@@ -210,15 +206,22 @@ clutter_android_handle_input (struct android_app *app,
           return 0;
         }
 
+      stage = clutter_stage_get_default ();
+      manager = clutter_device_manager_get_default ();
+      pointer_device =
+        clutter_device_manager_get_core_device (manager,
+                                                CLUTTER_POINTER_DEVICE);
+
       button_event = (ClutterButtonEvent *) event;
-      button_event->x = AMotionEvent_getX (a_event, 0);
-      button_event->y = AMotionEvent_getY (a_event, 0);
+      button_event->stage = CLUTTER_STAGE (stage);
+      button_event->device = pointer_device;
       button_event->button = 1;
       button_event->click_count = 1;
+      button_event->x = AMotionEvent_getX (a_event, 0);
+      button_event->y = AMotionEvent_getY (a_event, 0);
 
-      clutter_event_set_device (event, pointer_device);
-
-      clutter_event_put (event);
+      clutter_do_event (event);
+      clutter_event_free (event);
 
       return 1;
     }
