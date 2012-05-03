@@ -314,17 +314,23 @@ clutter_backend_egl_create_context (ClutterBackend  *backend,
   CoglSwapChain *swap_chain = NULL;
   CoglOnscreenTemplate *onscreen_template = NULL;
 
+  g_message ("Create context %p", backend->cogl_context);
+
   if (backend->cogl_context)
     return TRUE;
 
+  g_message ("cogl_renderer_new()");
   backend->cogl_renderer = cogl_renderer_new ();
 #ifdef COGL_HAS_XLIB_SUPPORT
   cogl_renderer_xlib_set_foreign_display (backend->cogl_renderer,
                                           backend_x11->xdpy);
 #endif
+  g_message ("cogl_renderer_connect()");
+  backend->cogl_renderer = cogl_renderer_new ();
   if (!cogl_renderer_connect (backend->cogl_renderer, error))
     goto error;
 
+  g_message ("cogl_swap_chain_new()");
   swap_chain = cogl_swap_chain_new ();
 #ifdef COGL_HAS_XLIB_SUPPORT
   cogl_swap_chain_set_has_alpha (swap_chain,
@@ -335,6 +341,7 @@ clutter_backend_egl_create_context (ClutterBackend  *backend,
   cogl_swap_chain_set_length (swap_chain, gdl_n_buffers);
 #endif
 
+  g_message ("cogl_onscreen_template_new()");
   onscreen_template = cogl_onscreen_template_new (swap_chain);
   cogl_object_unref (swap_chain);
 
@@ -342,11 +349,15 @@ clutter_backend_egl_create_context (ClutterBackend  *backend,
    * Conceptually should we be able to check an onscreen_template
    * without more details about the CoglDisplay configuration?
    */
+#if 0
+  g_message ("cogl_renderer_check_onscreen_template()");
   if (!cogl_renderer_check_onscreen_template (backend->cogl_renderer,
                                               onscreen_template,
                                               error))
     goto error;
 
+#endif
+  g_message ("cogl_display_new()");
   backend->cogl_display = cogl_display_new (backend->cogl_renderer,
                                             onscreen_template);
 
@@ -357,9 +368,11 @@ clutter_backend_egl_create_context (ClutterBackend  *backend,
   cogl_object_unref (backend->cogl_renderer);
   cogl_object_unref (onscreen_template);
 
+  g_message ("cogl_display_setup()");
   if (!cogl_display_setup (backend->cogl_display, error))
     goto error;
 
+  g_message ("Creating context for display %p", backend->cogl_display);
   backend->cogl_context = cogl_context_new (backend->cogl_display, error);
   if (!backend->cogl_context)
     goto error;

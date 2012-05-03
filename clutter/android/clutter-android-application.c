@@ -22,6 +22,8 @@
  *   Damien Lespiau <damien.lespiau@intel.com>
  */
 
+#include <stdlib.h>
+
 #include <android_native_app_glue.h>
 #include <android/input.h>
 
@@ -152,6 +154,7 @@ clutter_android_handle_cmd (struct android_app *app,
         g_main_loop_quit (priv->wait_for_window);
       else
         clutter_main_quit ();
+      exit (0);
       //test_fini (data);
       break;
 

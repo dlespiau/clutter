@@ -2318,8 +2318,10 @@ clutter_base_init (void)
     {
       initialised = TRUE;
 
+#if 0
       bindtextdomain (GETTEXT_PACKAGE, CLUTTER_LOCALEDIR);
       bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
 
       /* initialise GLib type system */
       g_type_init ();
